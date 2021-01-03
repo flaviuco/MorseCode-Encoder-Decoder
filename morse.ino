@@ -448,3 +448,14 @@ void encode(char symbol){
       Serial.print("?"); 
   }
 }
+
+boolean isEmpty(String text){
+  int i = 0;
+  while(text[i]!= 0){
+    if(isDigit(text[i]) || isAlpha(text[i])){
+      return false;
+    }
+    i++;
+  }
+  return true;
+}
