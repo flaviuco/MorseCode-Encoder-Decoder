@@ -1,9 +1,10 @@
 //dot: 40 ms | dash: 120 ms => 30 cuv pe min
-//dot: 50 ms | dash: 150 ms => 30 cuv pe min
+//dot: 50 ms | dash: 150 ms => 35 cuv pe min
 // 
 #define TIME_UNIT 50
 const int ledPin = 24;
 const int buzzerPin = 52;
+const int buttonPin = 38;
 
 //Reguli:
 //dupa fiecare simbol al unei litere urmeaza un TIME_UNIT
@@ -18,24 +19,41 @@ const int letterGap = 3 * TIME_UNIT;
 //completam TIME_UNIT pana la 7
 const int wordGap = 4 * TIME_UNIT; 
 
+//PENTRU DECODER
+int buttonState = 1;               // starea curenta a butonului -> la inceput este 1(folosind un INPUT_PULLUP activarea este inversa)
+int lastButtonState = 1;           // starea anterioara a butonului
+unsigned long startPressed = 0;    // momentul in care butonul a fost apasat
+unsigned long endPressed = 0;      // momentul in care butonul o fost lasat
+unsigned long holdTime = 0;        // cat timp o fost apasat butonul
+String letterCode ="";             // codificarea literei in cod morse
+
 void setup() {
   Serial.begin(9600);
   pinMode(ledPin, OUTPUT);
   pinMode(buzzerPin, OUTPUT);
+  pinMode(buttonPin, INPUT_PULLUP);  //folosim pull-up-ul intern din placuta
 }
 
 void loop() {
-  if(Serial.available()){
+  if(Serial.available() > 0){
     String text = Serial.readString();
-    Serial.print(text);  //trebuie setat din monitorul serial sa nu adauge newLine pt a afisa corect
-    Serial.print(" = ");
-    int i = 0;
-    while(text[i] != 0){
-      encode(text[i]);
-      i++;
+    if(!isEmpty(text)){
+      Serial.print(text);  //trebuie setat din monitorul serial sa nu adauge newLine pt a afisa corect
+      Serial.print(" = ");
+      int i = 0;
+      while(text[i] != 0){
+        encode(text[i]);
+        i++;
+      }
+      Serial.print("\n");
     }
-    Serial.print("\n");
-  }
+  }else {
+    buttonState = digitalRead(buttonPin);
+    if(buttonState != lastButtonState){
+      updateState();
+    }
+    lastButtonState = buttonState;  
+  }  
 }
 
 void dot(){
@@ -458,4 +476,22 @@ boolean isEmpty(String text){
     i++;
   }
   return true;
+}
+
+void updateState(){
+  if(buttonState == LOW){
+    //s-a apasat butonul si se poate calcula timpul cat butonul a fost lasat
+    startPressed = millis();
+    digitalWrite(ledPin, HIGH);
+    digitalWrite(buzzerPin, HIGH);
+    Serial.print("butonul a fost lasat: ");
+  }else{
+    //s-a last butonul si se poate calcula timpul cat butonul a fost apasat
+    endPressed = millis();
+    holdTime = endPressed - startPressed;
+    digitalWrite(ledPin, LOW);
+    digitalWrite(buzzerPin, LOW);
+    Serial.print("butonul a fost apasat: ");
+    Serial.println(holdTime);
+  }
 }
